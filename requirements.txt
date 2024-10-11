@@ -5,7 +5,7 @@ adafruit-circuitpython-dht==4.0.5
 adafruit-circuitpython-requests==4.1.8
 adafruit-circuitpython-typing==1.11.0
 Adafruit-PlatformDetect==3.75.0
-Adafruit-PureI0==1.1.11
+Adafruit-PureIO==1.1.11
 binho-host-adapter==0.1.6
 blinker==1.8.2
 certifi==2024.8.30
