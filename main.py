@@ -4,7 +4,7 @@ import dropbox
 from gpiozero import Button, LED
 from flask import Flask, Response, render_template
 import adafruit_dht
-from gpiozero import DistanceSensor, LED
+from gpiozero import DistanceSensor
 from board import D4
 from time import time, sleep
 import json
@@ -44,25 +44,6 @@ last_exit_time = None  # Timestamp of the last exit to enforce cooldown
 # State tracking for recording data
 recording_active = False
 recorded_data = []  # List to store recorded data
-
-# Function to start/stop recording and upload data when stopped
-def toggle_recording():
-    global recording_active, recorded_data
-
-    if recording_active:
-        # Stop recording and upload data to Dropbox
-        print("Recording stopped. Uploading data...")
-        upload_to_dropbox(recorded_data)  # Upload all recorded data as one file
-        recorded_data = []  # Clear the recorded data after upload
-    else:
-        # Start recording
-        print("Recording started...")
-    
-    # Toggle the recording state
-    recording_active = not recording_active
-
-# Set up button to start/stop recording
-upload_button.when_pressed = toggle_recording
 
 # Function to categorize temperature and humidity
 def categorize_conditions(temp, humidity):
@@ -163,8 +144,24 @@ def upload_to_dropbox(data):
     except dropbox.exceptions.ApiError as err:
         print(f"Failed to upload {file_name} to Dropbox: {err}")
 
-# Set up button to upload data to Dropbox
-upload_button.when_pressed = lambda: upload_to_dropbox(get_sensor_data())
+# Function to start/stop recording and upload data when stopped
+def toggle_recording():
+    global recording_active, recorded_data
+
+    if recording_active:
+        # Stop recording and upload data to Dropbox
+        print("Recording stopped. Uploading data...")
+        upload_to_dropbox(recorded_data)  # Upload all recorded data as one file
+        recorded_data = []  # Clear the recorded data after upload
+    else:
+        # Start recording
+        print("Recording started...")
+    
+    # Toggle the recording state
+    recording_active = not recording_active
+
+# Set up button to start/stop recording
+upload_button.when_pressed = toggle_recording
 
 # Flask routes
 @app.route('/')
