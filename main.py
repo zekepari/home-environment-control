@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 import os
 import dropbox
 from gpiozero import Button, LED
@@ -7,6 +8,8 @@ from gpiozero import DistanceSensor, LED
 from board import D4
 from time import time, sleep
 import json
+
+load_dotenv()
 
 app = Flask(__name__)
 
