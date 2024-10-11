@@ -1,3 +1,4 @@
+import dropbox
 from gpiozero import Button, LED
 from flask import Flask, Response, render_template
 import adafruit_dht
@@ -8,6 +9,10 @@ import json
 
 app = Flask(__name__)
 
+# Initialize Dropbox client with access token
+DROPBOX_ACCESS_TOKEN = 'your-dropbox-access-token'
+dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
+
 # Initialize sensors
 dht_sensor = adafruit_dht.DHT11(D4)
 distance_sensor = DistanceSensor(echo=24, trigger=18)
@@ -17,8 +22,9 @@ green_led = LED(17)
 yellow_led = LED(27)
 white_led = LED(22)  # New white LED for room light
 
-# Initialize button
+# Initialize buttons
 button = Button(23)  # Button to control the white LED
+upload_button = Button(21)  # Button to upload data to Dropbox
 
 MOVEMENT_THRESHOLD = 0.1  # Threshold for detecting movement
 NO_MOVEMENT_LIMIT = 5  # Number of readings to assume no movement (for entry/exit logic)
@@ -30,36 +36,17 @@ in_room = False  # Assume nobody is in the room initially
 previous_distance = None  # To store the previous distance value
 movement_after_no_movement = False  # To track if we detect movement after no movement period
 last_exit_time = None  # Timestamp of the last exit to enforce cooldown
-led_overridden = False  # Tracks whether the button has overridden the auto LED behavior
 
-# Function to categorize temperature
-def categorize_temperature(temp):
-    if temp < 18:
-        return 'cold'
-    elif 18 <= temp <= 24:
-        return 'moderate'
-    else:
-        return 'hot'
-
-# Function to categorize humidity
-def categorize_humidity(humidity):
-    if humidity < 30:
-        return 'low'
-    elif 30 <= humidity <= 60:
-        return 'moderate'
-    else:
-        return 'high'
-
-# Function to automatically control the white LED based on room occupancy
-def auto_control_led():
-    if in_room:
-        white_led.on()  # Turn on LED when someone is in the room
-    else:
-        white_led.off()  # Turn off LED when the room is empty
+# Function to categorize temperature and humidity
+def categorize_conditions(temp, humidity):
+    temp_category = 'moderate' if 18 <= temp <= 24 else 'cold' if temp < 18 else 'hot'
+    humidity_category = 'moderate' if 30 <= humidity <= 60 else 'low' if humidity < 30 else 'high'
+    return temp_category, humidity_category
 
 # Function to toggle the white LED manually (button override)
 def toggle_white_led():
     white_led.toggle()
+
 # Set up button to control the white LED
 button.when_pressed = toggle_white_led
 
@@ -69,33 +56,25 @@ def get_sensor_data():
     try:
         # Read distance sensor data
         dist = distance_sensor.distance
-        distance_change = None
-        if previous_distance is not None:
-            distance_change = abs(dist - previous_distance)
-
-        current_time = time()  # Get the current timestamp
-
-        # If there's significant movement
-        if distance_change is not None and distance_change > MOVEMENT_THRESHOLD:
+        if previous_distance is not None and abs(dist - previous_distance) > MOVEMENT_THRESHOLD:
             green_led.on()  # Movement detected
             yellow_led.off()
 
             # Check if we're in the cooldown period
-            if last_exit_time and (current_time - last_exit_time < COOLDOWN_PERIOD):
+            if last_exit_time and time() - last_exit_time < COOLDOWN_PERIOD:
                 print("Cooldown active. Ignoring movement.")
             else:
                 if not in_room:
                     in_room = True  # Someone has entered the room
                     print("Someone has entered the room.")
-                    auto_control_led()  # Auto control LED based on entry
+                    white_led.on()  # Turn on LED when someone is in the room
 
                 elif movement_after_no_movement:
-                    # Movement detected after no movement period, assume exit
-                    in_room = False
-                    last_exit_time = current_time  # Set the time of exit
+                    in_room = False  # Someone has left the room
+                    last_exit_time = time()  # Set the time of exit
                     movement_after_no_movement = False
                     print("Someone has left the room.")
-                    auto_control_led()  # Auto control LED based on exit
+                    white_led.off()  # Turn off LED when the room is empty
 
             movement_detected = 0  # Reset movement detection counter since there is movement
 
@@ -107,8 +86,7 @@ def get_sensor_data():
 
             # If no movement is detected for 5 cycles and someone is in the room
             if movement_detected >= NO_MOVEMENT_LIMIT and in_room:
-                # Prepare to detect the next movement as exit
-                movement_after_no_movement = True
+                movement_after_no_movement = True  # Prepare to detect the next movement as exit
                 print("Waiting for next movement to assume exit...")
 
         previous_distance = dist  # Update the previous distance with the current one
@@ -117,23 +95,16 @@ def get_sensor_data():
         temperature = dht_sensor.temperature
         humidity = dht_sensor.humidity
 
-        temp_category = categorize_temperature(temperature)
-        humidity_category = categorize_humidity(humidity)
+        temp_category, humidity_category = categorize_conditions(temperature, humidity)
 
         warnings = []
-
-        if temp_category == 'hot':
-            warnings.append("Warning: The room is too hot!")
-        elif temp_category == 'cold':
-            warnings.append("Warning: The room is too cold!")
-
-        if humidity_category == 'high':
-            warnings.append("Warning: The humidity is too high!")
-        elif humidity_category == 'low':
-            warnings.append("Warning: The humidity is too low!")
+        if temp_category in ['hot', 'cold']:
+            warnings.append(f"Warning: The room is too {temp_category}!")
+        if humidity_category in ['high', 'low']:
+            warnings.append(f"Warning: The humidity is too {humidity_category}!")
 
         # Return the latest sensor data
-        sensor_data = {
+        return {
             "distance": dist * 100,  # convert to cm
             "temperature": temperature,
             "humidity": humidity,
@@ -144,11 +115,21 @@ def get_sensor_data():
             "white_led_status": white_led.is_lit
         }
 
-        return sensor_data
-
     except RuntimeError as error:
         print(f"Error reading from sensors: {error}")
         return {}
+
+# Function to upload data to Dropbox
+def upload_to_dropbox(data):
+    file_name = f"sensor_data_{int(time())}.json"
+    try:
+        dbx.files_upload(json.dumps(data).encode(), f'/{file_name}')
+        print(f"Uploaded {file_name} to Dropbox successfully.")
+    except dropbox.exceptions.ApiError as err:
+        print(f"Failed to upload {file_name} to Dropbox: {err}")
+
+# Set up button to upload data to Dropbox
+upload_button.when_pressed = lambda: upload_to_dropbox(get_sensor_data())
 
 # Flask routes
 @app.route('/')
