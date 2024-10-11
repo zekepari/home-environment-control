@@ -25,7 +25,7 @@ pyserial==3.5
 pyusb==1.2.1
 requests==2.32.3
 rpi-ws281x==5.0.0
-RPi.GPI0==0.7.1
+RPi.GPIO==0.7.1
 six==1.16.0
 stone==3.3.1
 sysv-ipc==1.1.0
