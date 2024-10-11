@@ -1,2 +1,34 @@
-gpiozero==2.0.1
+Adafruit-Blinka==8.48.0
+adafruit-circuitpython-busdevice==5.2.10
+adafruit-circuitpython-connectionmanager==3.1.2
 adafruit-circuitpython-dht==4.0.5
+adafruit-circuitpython-requests==4.1.8
+adafruit-circuitpython-typing==1.11.0
+Adafruit-PlatformDetect==3.75.0
+Adafruit-PureI0==1.1.11
+binho-host-adapter==0.1.6
+blinker==1.8.2
+certifi==2024.8.30
+charset-normalizer==3.4.0
+click==8.1.7
+colorzero==2.0
+dropbox==12. 0.2
+Flask==3.0.3
+gpiozero==2.0.1
+idna==3.10
+itsdangerous==2.2.0
+Jinja2==3.1.4
+MarkupSafe==3.0.1
+ply==3.11
+pyftdi==0.55.4
+pyserial==3.5
+pyusb==1.2.1
+requests==2.32.3
+rpi-ws281x==5.0. 0
+RPi. GPI0==0.7.1
+six==1.16.0
+stone==3,3,1
+sysv-ipc==1.1,0
+typing_extensions==4.12.2
+ur 1lib3==2.2.3
+Werkzeug==3.0.4
