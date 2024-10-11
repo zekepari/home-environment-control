@@ -3,7 +3,7 @@ from flask import Flask, Response, render_template, jsonify
 import adafruit_dht
 from gpiozero import DistanceSensor, LED
 from board import D4
-from time import time
+from time import time, sleep
 
 app = Flask(__name__)
 
@@ -172,7 +172,7 @@ def events():
             sensor_data = get_sensor_data()
             if sensor_data:
                 yield format_sse(jsonify(sensor_data).get_data(as_text=True))  # Send data as SSE
-            time.sleep(1)
+            sleep(1)
 
     return Response(event_stream(), content_type='text/event-stream')
 
