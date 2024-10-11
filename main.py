@@ -52,18 +52,14 @@ def categorize_humidity(humidity):
 
 # Function to automatically control the white LED based on room occupancy
 def auto_control_led():
-    global led_overridden
-    if in_room and not led_overridden:
+    if in_room:
         white_led.on()  # Turn on LED when someone is in the room
-    elif not in_room and not led_overridden:
+    else:
         white_led.off()  # Turn off LED when the room is empty
 
 # Function to toggle the white LED manually (button override)
 def toggle_white_led():
-    global led_overridden
-    white_led.toggle()  # Reverse the current LED state
-    led_overridden = not led_overridden  # Toggle the override flag
-
+    white_led.toggle()
 # Set up button to control the white LED
 button.when_pressed = toggle_white_led
 
