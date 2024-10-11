@@ -21,38 +21,48 @@
         }
     </style>
     <script>
-        function fetchData() {
-            fetch('/data')
-                .then(response => response.json())
-                .then(data => {
-                    // Update distance, temperature, and humidity
-                    document.getElementById('distance').innerText = `Distance: ${data.distance.toFixed(1)} cm`;
-                    document.getElementById('temperature').innerText = `Temperature: ${data.temperature.toFixed(1)} °C (${data.temp_category})`;
-                    document.getElementById('humidity').innerText = `Humidity: ${data.humidity.toFixed(1)}% (${data.humidity_category})`;
+        // Set up the EventSource to listen for SSE events from the server
+        const eventSource = new EventSource("/events");
 
-                    // Update room occupancy status
-                    const inRoomText = data.in_room ? "Someone is in the room" : "Room is empty";
-                    document.getElementById('room-status').innerText = `Room Status: ${inRoomText}`;
+        // When the server sends a message, this function processes it
+        eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
 
-                    // Update white LED status
-                    const ledStatusText = data.white_led_status ? "ON" : "OFF";
-                    document.getElementById('led-status').innerText = `Room Light (White LED): ${ledStatusText}`;
+            // Update distance, temperature, and humidity
+            document.getElementById('distance').innerText = `Distance: ${data.distance.toFixed(1)} cm`;
+            document.getElementById('temperature').innerText = `Temperature: ${data.temperature.toFixed(1)} °C (${data.temp_category})`;
+            document.getElementById('humidity').innerText = `Humidity: ${data.humidity.toFixed(1)}% (${data.humidity_category})`;
 
-                    // Update warnings
-                    const warningsDiv = document.getElementById('warnings');
-                    warningsDiv.innerHTML = '';
-                    if (data.warnings.length > 0) {
-                        data.warnings.forEach(warning => {
-                            const p = document.createElement('p');
-                            p.innerText = warning;
-                            p.classList.add('warning');
-                            warningsDiv.appendChild(p);
-                        });
-                    }
+            // Update room occupancy status
+            const inRoomText = data.in_room ? "Someone is in the room" : "Room is empty";
+            document.getElementById('room-status').innerText = `Room Status: ${inRoomText}`;
+
+            // Update white LED status
+            const ledStatusText = data.white_led_status ? "ON" : "OFF";
+            document.getElementById('led-status').innerText = `Room Light (White LED): ${ledStatusText}`;
+
+            // Update warnings
+            const warningsDiv = document.getElementById('warnings');
+            warningsDiv.innerHTML = '';  // Clear previous warnings
+            if (data.warnings.length > 0) {
+                data.warnings.forEach(warning => {
+                    const p = document.createElement('p');
+                    p.innerText = warning;
+                    p.classList.add('warning');
+                    warningsDiv.appendChild(p);
                 });
-        }
+            }
+        };
 
-        setInterval(fetchData, 300); // Fetch data every second
+        // Handle error in case SSE connection fails
+        eventSource.onerror = function() {
+            console.error("Error receiving events from server.");
+            document.getElementById('distance').innerText = `Distance: -- cm (Connection Error)`;
+            document.getElementById('temperature').innerText = `Temperature: -- °C (Connection Error)`;
+            document.getElementById('humidity').innerText = `Humidity: -- % (Connection Error)`;
+            document.getElementById('room-status').innerText = "Room Status: -- (Connection Error)";
+            document.getElementById('led-status').innerText = "Room Light (White LED): -- (Connection Error)";
+        };
     </script>
 </head>
 <body>
