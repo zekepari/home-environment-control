@@ -41,6 +41,29 @@ previous_distance = None  # To store the previous distance value
 movement_after_no_movement = False  # To track if we detect movement after no movement period
 last_exit_time = None  # Timestamp of the last exit to enforce cooldown
 
+# State tracking for recording data
+recording_active = False
+recorded_data = []  # List to store recorded data
+
+# Function to start/stop recording and upload data when stopped
+def toggle_recording():
+    global recording_active, recorded_data
+
+    if recording_active:
+        # Stop recording and upload data to Dropbox
+        print("Recording stopped. Uploading data...")
+        upload_to_dropbox(recorded_data)  # Upload all recorded data as one file
+        recorded_data = []  # Clear the recorded data after upload
+    else:
+        # Start recording
+        print("Recording started...")
+    
+    # Toggle the recording state
+    recording_active = not recording_active
+
+# Set up button to start/stop recording
+upload_button.when_pressed = toggle_recording
+
 # Function to categorize temperature and humidity
 def categorize_conditions(temp, humidity):
     temp_category = 'moderate' if 18 <= temp <= 24 else 'cold' if temp < 18 else 'hot'
@@ -56,7 +79,7 @@ button.when_pressed = toggle_white_led
 
 # Function to retrieve sensor data dynamically
 def get_sensor_data():
-    global previous_distance, movement_detected, in_room, movement_after_no_movement, last_exit_time
+    global previous_distance, movement_detected, in_room, movement_after_no_movement, last_exit_time, recorded_data
     try:
         # Read distance sensor data
         dist = distance_sensor.distance
@@ -107,8 +130,8 @@ def get_sensor_data():
         if humidity_category in ['high', 'low']:
             warnings.append(f"Warning: The humidity is too {humidity_category}!")
 
-        # Return the latest sensor data
-        return {
+        # Create a dictionary for the latest sensor data
+        sensor_data = {
             "distance": dist * 100,  # convert to cm
             "temperature": temperature,
             "humidity": humidity,
@@ -119,9 +142,18 @@ def get_sensor_data():
             "white_led_status": white_led.is_lit
         }
 
+        # If recording is active, accumulate sensor data
+        if recording_active:
+            recorded_data.append(sensor_data)
+            print("Recording data...")
+
+        # Return the latest sensor data
+        return sensor_data
+
     except RuntimeError as error:
         print(f"Error reading from sensors: {error}")
         return {}
+
 # Function to upload data to Dropbox
 def upload_to_dropbox(data):
     file_name = f"sensor_data_{int(time())}.json"
