@@ -119,7 +119,6 @@ def get_sensor_data():
     except RuntimeError as error:
         print(f"Error reading from sensors: {error}")
         return {}
-#.B-g6esU6NcBJG7bdVAYb3QPCYHhHgXrL7GMc8Yht2_p72QgzKeC9PjjIXn1S95v4_FKW_rN7I88QH4qpW-lGE5TSsnltzCDiSTBycCI0Imv76aPyJ5eWPTjjs8eQXSxDKnYHw7WbszW-zEONNht9PQM
 # Function to upload data to Dropbox
 def upload_to_dropbox(data):
     file_name = f"sensor_data_{int(time())}.json"

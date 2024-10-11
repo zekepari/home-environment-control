@@ -32,3 +32,4 @@ sysv-ipc==1.1.0
 typing_extensions==4.12.2
 urllib3==2.2.3
 Werkzeug==3.0.4
+python-dotenv==1.0.1
