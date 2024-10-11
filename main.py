@@ -88,12 +88,10 @@ def get_sensor_data():
             if last_exit_time and (current_time - last_exit_time < COOLDOWN_PERIOD):
                 print("Cooldown active. Ignoring movement.")
             else:
-                # If not in the room and no cooldown is active, assume entry
                 if not in_room:
-                    in_room = True
+                    in_room = True  # Someone has entered the room
                     print("Someone has entered the room.")
-                    led_overridden = False  # Reset override when auto behavior changes
-                    auto_control_led()
+                    auto_control_led()  # Auto control LED based on entry
 
                 elif movement_after_no_movement:
                     # Movement detected after no movement period, assume exit
@@ -101,11 +99,9 @@ def get_sensor_data():
                     last_exit_time = current_time  # Set the time of exit
                     movement_after_no_movement = False
                     print("Someone has left the room.")
-                    led_overridden = False  # Reset override when auto behavior changes
-                    auto_control_led()
+                    auto_control_led()  # Auto control LED based on exit
 
-            # Reset movement detection counter since there is movement
-            movement_detected = 0
+            movement_detected = 0  # Reset movement detection counter since there is movement
 
         else:
             yellow_led.on()  # No significant movement
