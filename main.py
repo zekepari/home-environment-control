@@ -1,9 +1,10 @@
 from gpiozero import Button, LED
-from flask import Flask, Response, render_template, jsonify
+from flask import Flask, Response, render_template
 import adafruit_dht
 from gpiozero import DistanceSensor, LED
 from board import D4
 from time import time, sleep
+import json
 
 app = Flask(__name__)
 
@@ -168,14 +169,14 @@ def format_sse(data):
 @app.route('/events')
 def events():
     def event_stream():
-        while True:
-            sensor_data = get_sensor_data()
-            if sensor_data:
-                yield format_sse(jsonify(sensor_data).get_data(as_text=True))  # Send data as SSE
-            sleep(1)
+        with app.app_context():  # Ensuring this runs within the Flask app context
+            while True:
+                sensor_data = get_sensor_data()  # Fetch sensor data
+                if sensor_data:
+                    yield format_sse(json.dumps(sensor_data))  # Send JSON data as SSE
+                sleep(1)  # Sleep before sending the next update
 
     return Response(event_stream(), content_type='text/event-stream')
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
